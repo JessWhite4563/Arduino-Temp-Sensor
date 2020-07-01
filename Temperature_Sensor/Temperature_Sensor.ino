@@ -34,6 +34,16 @@ byte buttonJustPressed  = false;
 byte buttonJustReleased = false;   
 bool indicator = false;
 
+byte indicatorIcon[8] = {
+  B00001,
+  B00000,
+  B00000,
+  B00000,
+  B00000,
+  B00000,
+  B00000,
+};
+
 LiquidCrystal lcd( 8, 9, 4, 5, 6, 7 );
 
 void setup(){
@@ -45,6 +55,7 @@ void setup(){
   lcd.print("H:");
   lcd.setCursor(9,1);
   lcd.print("L:");
+  lcd.createChar(0, indicatorIcon);
   updateDisplay();
 }
 
@@ -85,10 +96,10 @@ void updateDisplay(){
   }
   if(indicator){
     lcd.setCursor(15,0);
-    lcd.print(1);
+    lcd.write(byte(0));
   }else{
     lcd.setCursor(15,0);
-    lcd.print(0);
+    lcd.print(" ");
   }
   indicator = !indicator;
 }
