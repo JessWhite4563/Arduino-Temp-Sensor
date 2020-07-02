@@ -33,6 +33,7 @@ byte buttonWas = BUTTON_NONE;
 byte buttonJustPressed  = false;
 byte buttonJustReleased = false;   
 bool indicator = false;
+bool displayRunning = true;
 
 byte indicatorIcon[8] = {
   B00001,
@@ -47,8 +48,14 @@ byte indicatorIcon[8] = {
 LiquidCrystal lcd( 8, 9, 4, 5, 6, 7 );
 
 void setup(){
+  pinMode(LCD_BACKLIGHT_PIN, OUTPUT);
+  digitalWrite(LCD_BACKLIGHT_PIN, true);
   Serial.begin(9600);
   Wire.begin();
+  setInitialDisplay();
+}
+
+void setInitialDisplay(){
   lcd.begin(16, 2);
   lcd.print("Current:");
   lcd.setCursor(0,1);
@@ -56,55 +63,80 @@ void setup(){
   lcd.setCursor(9,1);
   lcd.print("L:");
   lcd.createChar(0, indicatorIcon);
-  updateDisplay();
+  updateDisplay(true);  
 }
 
 void loop(){
-  if(++displayCounter > 5000){
-    updateDisplay();
+  if(++displayCounter > 50){
+    updateDisplay(false);
     displayCounter = 0;
   }
 
-  if(++buttonCounter > 100){
+  if(++buttonCounter > 1){
   
     switch(ReadButtons()){
       case BUTTON_SELECT :
         resetTemperature();
-        updateDisplay();
+        updateDisplay(true);
+        break;
+      case BUTTON_DOWN :
+        updateDisplayOutput(false);
+        break;
+      case BUTTON_UP :
+        updateDisplayOutput(true);
+        updateDisplay(true);
         break;
     }
     buttonCounter = 0;
   }
 
-  delay(1);
+  delay(100);
+}
+
+void updateDisplayOutput(bool state){
+  if( state != displayRunning ){
+    if( !state ){
+      lcd.clear();
+    } else {
+      setInitialDisplay();
+    }
+    displayRunning = state;
+    digitalWrite(LCD_BACKLIGHT_PIN, state);
+  }
 }
 
 
-
-void updateDisplay(){
+void updateDisplay(bool full){
   float celsius = getTemperature();
   writeDisplay(1, celsius);
   
-  if( celsius > high){
-    high = celsius;
+  if( celsius > high || full){
+    if( celsius > high ){
+      high = celsius;
+    }
     writeDisplay(2, celsius);
   }
   
-  if(celsius < low){
-    low = celsius;  
+  if(celsius < low || full){
+    if(celsius < low ){
+      low = celsius;
+    } 
     writeDisplay(3, celsius);
   }
-  if(indicator){
-    lcd.setCursor(15,0);
-    lcd.write(byte(0));
-  }else{
-    lcd.setCursor(15,0);
-    lcd.print(" ");
+  if( displayRunning ){
+    if( indicator ){
+      lcd.setCursor(15,0);
+      lcd.write(byte(0));
+    }else{
+      lcd.setCursor(15,0);
+      lcd.print(" ");
+    }
   }
   indicator = !indicator;
 }
 
 void writeDisplay(int type, float value){
+  if( !displayRunning) return;
   bool set = false;
   switch(type){
     case 1:
